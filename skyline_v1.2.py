@@ -1,4 +1,4 @@
-import numpy
+﻿import numpy
 import math
 import gdal
 import psycopg2
@@ -8,7 +8,7 @@ import conn_param
 start_time = time.time()
 
 # load complete raster
-img = gdal.Open('C:\ds_test_data\ign_mnt25_alpes.tif')
+img = gdal.Open('C:\ds_test_data\\i_france_mnt_2154.tif')
 band1 = img.GetRasterBand(1)
 
 rastinit = img.GetGeoTransform()
@@ -48,7 +48,7 @@ print "table created"
 
 #load points and view extent
 wsta=myconn.cursor()
-'''
+
 query="""
 with a as (
 	select gid, st_x(the_geom) x, st_y(the_geom) y, st_buffer(the_geom,%s) geom
@@ -57,7 +57,7 @@ with a as (
 
 select gid, x, y, st_xmin(geom) xmin, st_ymin(geom), st_xmax(geom) xmax, st_ymax(geom) ymax
 from a
-where gid = '38002406'
+where gid = '09139401'
 order by gid
 ;
 """
@@ -77,8 +77,8 @@ from a
 order by gid
 ;
 """
-
-viewmax=3.57*math.sqrt(215)*1000
+'''
+viewmax= 50000#3.57*math.sqrt(215)*1000
 print viewmax
 wsta.execute(query,(viewmax,))
 
@@ -86,43 +86,43 @@ wsta.execute(query,(viewmax,))
 
 for sta in wsta:
 	final_data = []
-	print sta[0]
-	minrow = None
-	maxrow = None
-	mincol = None
-	maxcol = None
 	
-	for i in range(0,imgx.shape[1]-1):
-		if i+1 <= imgx.shape[1] and sta[3]-imgx[0,i]>0 and sta[3]-imgx[0,i+1]<=0:
-			mincol = i
-		if i+1 <= imgx.shape[1] and sta[5]-imgx[0,i]>0 and sta[5]-imgx[0,i+1]<=0:
-			maxcol = i
-	for i in range(0,imgx.shape[1]-1):
-		if sta[1]-imgx[0,i]>0 and sta[1]-imgx[0,i+1]<=0:
-			stacol = i-mincol
-			stax = imgx[0,i]+((imgx[0,i+1]-imgx[0,i])/2)
-	if minrow is None:
+	#Find row/col information et xy normalization
+	xmin = rastinit[0]+((math.floor((sta[3]-rastinit[0])/rastinit[1]))*rastinit[1])
+	xmax = rastinit[0]+((math.floor((sta[5]-rastinit[0])/rastinit[1]))*rastinit[1])
+	ymin = rastinit[3]-((math.ceil((rastinit[3]-sta[4])/rastinit[5]))*rastinit[5])
+	ymax = rastinit[3]-((math.ceil((rastinit[3]-sta[6])/rastinit[5]))*rastinit[5])
+	
+	stax = rastinit[0]+((math.floor((sta[1]-rastinit[0])/rastinit[1]))*rastinit[1])
+	stay = rastinit[3]-(math.ceil((rastinit[3]-sta[2])/rastinit[5])*rastinit[5])
+	
+	if ymax >= max(imgy):
 		minrow = 0
-	if maxrow is None:
-		maxrow = imgx.shape[1]
-		
-	for i in range(0,imgy.shape[0]-1):
-		if i+1 <= imgy.shape[0] and imgy[i,0]-sta[6]>0 and imgy[i+1,0]-sta[6]<=0:
-			minrow = i
-		if i+1 <= imgy.shape[0] and imgy[i,0]-sta[4]>0 and imgy[i+1,0]-sta[4]<=0:
-			maxrow = i
-	for i in range(0,imgy.shape[0]-1):
-		if imgy[i,0]-sta[2]>0 and imgy[i+1,0]-sta[2]<=0:
-			starow = i-minrow
-			stay = imgy[i+1,0]+((imgy[i,0]-imgy[i+1,0])/2)
-	if mincol is None:
-		mincol = 0
-	if maxcol is None:
-		maxcol = imgy.shape[0]
-			
-	sta_xy = (stax, stay)
-	sta_rc = (starow, stacol)
+	else:
+		minrow = numpy.unique(numpy.argwhere(imgy==ymax))[1]
+	if ymin <= min(imgy):
+		maxrow = imgy.shape[0]
+	else:
+		maxrow = numpy.unique(numpy.argwhere(imgy==ymin))[1]
 
+	if xmin <= min(imgx[0,]):
+		mincol=0
+	else:
+		mincol = numpy.unique(numpy.argwhere(imgx==xmin))[1]
+	if xmax >= max(imgx[0,]):
+		maxcol = imgx.shape[1]
+	else:
+		maxcol = numpy.unique(numpy.argwhere(imgx==xmax))[1]
+
+	starow = maxrow-numpy.unique(numpy.argwhere(imgy==stay))[1]
+	stacol = numpy.unique(numpy.argwhere(imgx==stax))[1]-mincol
+	starow = starow.astype('int64')
+	stacol = stacol.astype('int64')
+	
+	sta_xy = (stax+(rastinit[1]/2), stay+(rastinit[5]/2))
+	sta_rc = (starow, stacol)
+	
+	#Extract array from raster
 	height = band1.ReadAsArray(mincol, minrow, maxcol-mincol, maxrow-minrow)
 	height = height.astype('int64')
 
@@ -324,10 +324,8 @@ for sta in wsta:
 				c = myview/cos_alpha
 				#incrementation depending on azimut value (take care of x,y and row, col order and sign for ptx (or pty) calcul
 				ptrow = sta_rc[0]-i
-				ptx = sta_xy[0]+(sin_alpha*c)
-				for i in range(0,imgx.shape[1]-1):
-					if ptx-imgx[0,i]>0 and ptx-imgx[0,i+1]<=0:
-						ptcol = i-mincol
+				ptx = rastinit[0]+((math.floor((sta_xy[0]+(sin_alpha*c)-rastinit[0])/rastinit[1]))*rastinit[1])
+				ptcol = numpy.unique(numpy.argwhere(imgx==ptx))[1]-mincol
 				ptrc=(ptrow, ptcol)
 				
 				#calculate corresponding angle to reach the corresponding height
@@ -353,11 +351,10 @@ for sta in wsta:
 				c = myview/cos_alpha
 				#incrementation depending on azimut value (take care of x,y and row, col order
 				ptcol = sta_rc[1]+i
-				pty = sta_xy[1]+(sin_alpha*c)
-				for i in range(0,imgy.shape[0]-1):
-					if imgy[i,0]-pty>0 and imgy[i+1,0]-pty<=0:
-						ptrow = i-minrow
+				pty=rastinit[3]-((math.ceil((rastinit[3]-sta_xy[1]+(sin_alpha*c))/rastinit[5]))*rastinit[5])
+				ptrow=maxrow-numpy.unique(numpy.argwhere(imgy==pty))[1]
 				ptrc=(ptrow, ptcol)
+				
 				#calculate corresponding angle to reach the corresponding height
 				b = height[ptrc]-height[sta_rc]
 				if b > 0:
@@ -381,10 +378,8 @@ for sta in wsta:
 				c = myview/cos_alpha
 				#incrementation depending on azimut value (take care of x,y and row, col order
 				ptcol = sta_rc[1]+i
-				pty = sta_xy[1]-(sin_alpha*c)
-				for i in range(0,imgy.shape[0]-1):
-					if imgy[i,0]-pty>0 and imgy[i+1,0]-pty<=0:
-						ptrow = i-minrow
+				pty=rastinit[3]-((math.ceil((rastinit[3]-sta_xy[1]-(sin_alpha*c))/rastinit[5]))*rastinit[5])
+				ptrow=maxrow-numpy.unique(numpy.argwhere(imgy==pty))[1]
 				ptrc=(ptrow, ptcol)
 				
 				#calculate corresponding angle to reach the corresponding height
@@ -410,10 +405,8 @@ for sta in wsta:
 				c = myview/cos_alpha
 				#incrementation depending on azimut value (take care of x,y and row, col order
 				ptrow = sta_rc[0]+i
-				ptx = sta_xy[0]+(sin_alpha*c)
-				for i in range(0,imgx.shape[1]-1):
-					if ptx-imgx[0,i]>0 and ptx-imgx[0,i+1]<=0:
-						ptcol = i-mincol
+				ptx = rastinit[0]+((math.floor((sta_xy[0]+(sin_alpha*c)-rastinit[0])/rastinit[1]))*rastinit[1])
+				ptcol = numpy.unique(numpy.argwhere(imgx==ptx))[1]-mincol
 				ptrc=(ptrow, ptcol)
 				
 				#calculate corresponding angle to reach the corresponding height
@@ -439,10 +432,8 @@ for sta in wsta:
 				c = myview/cos_alpha
 			#incrementation depending on azimut value (take care of x,y and row, col order and sign for ptx (or pty) calcul
 				ptrow = sta_rc[0]+i
-				ptx = sta_xy[0]-(sin_alpha*c)
-				for i in range(0,imgx.shape[1]-1):
-					if ptx-imgx[0,i]>0 and ptx-imgx[0,i+1]<=0:
-						ptcol = i-mincol
+				ptx = rastinit[0]+((math.floor((sta_xy[0]-(sin_alpha*c)-rastinit[0])/rastinit[1]))*rastinit[1])
+				ptcol = numpy.unique(numpy.argwhere(imgx==ptx))[1]-mincol
 				ptrc=(ptrow, ptcol)
 				
 				#calculate corresponding angle to reach the corresponding height
@@ -467,12 +458,9 @@ for sta in wsta:
 				myview = myview+25
 				c = myview/cos_alpha
 				#incrementation depending on azimut value (take care of x,y and row, col order
-				ptx = sta_xy[0]-25
 				ptcol = sta_rc[1]-i
-				pty = sta_xy[1]-(sin_alpha*c)
-				for i in range(0,imgy.shape[0]-1):
-					if imgy[i,0]-pty>0 and imgy[i+1,0]-pty<=0:
-						ptrow = i-minrow
+				pty=rastinit[3]-((math.ceil((rastinit[3]-sta_xy[1]-(sin_alpha*c))/rastinit[5]))*rastinit[5])
+				ptrow=maxrow-numpy.unique(numpy.argwhere(imgy==pty))[1]
 				ptrc=(ptrow, ptcol)
 				
 				#calculate corresponding angle to reach the corresponding height
@@ -497,12 +485,9 @@ for sta in wsta:
 				myview = myview+25
 				c = myview/cos_alpha
 				#incrementation depending on azimut value (take care of x,y and row, col order
-				ptx = sta_xy[0]-25
 				ptcol = sta_rc[1]-i
-				pty = sta_xy[1]+(sin_alpha*c)
-				for i in range(0,imgy.shape[0]-1):
-					if imgy[i,0]-pty>0 and imgy[i+1,0]-pty<=0:
-						ptrow = i-minrow
+				pty=rastinit[3]-((math.ceil((rastinit[3]-sta_xy[1]+(sin_alpha*c))/rastinit[5]))*rastinit[5])
+				ptrow=maxrow-numpy.unique(numpy.argwhere(imgy==pty))[1]
 				ptrc=(ptrow, ptcol)
 				
 				#calculate corresponding angle to reach the corresponding height
@@ -528,10 +513,8 @@ for sta in wsta:
 				c = myview/cos_alpha
 			#incrementation depending on azimut value (take care of x,y and row, col order and sign for ptx (or pty) calcul
 				ptrow = sta_rc[0]-i
-				ptx = sta_xy[0]-(sin_alpha*c)
-				for i in range(0,imgx.shape[1]-1):
-					if ptx-imgx[0,i]>0 and ptx-imgx[0,i+1]<=0:
-						ptcol = i-mincol
+				ptx = rastinit[0]+((math.floor((sta_xy[0]-(sin_alpha*c)-rastinit[0])/rastinit[1]))*rastinit[1])
+				ptcol = numpy.unique(numpy.argwhere(imgx==ptx))[1]-mincol
 				ptrc=(ptrow, ptcol)
 				
 				#calculate corresponding angle to reach the corresponding height
