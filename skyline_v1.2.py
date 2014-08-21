@@ -48,7 +48,7 @@ print "table created"
 
 #load points and view extent
 wsta=myconn.cursor()
-
+'''
 query="""
 with a as (
 	select gid, st_x(the_geom) x, st_y(the_geom) y, st_buffer(the_geom,%s) geom
@@ -64,7 +64,7 @@ order by gid
 '''
 query="""
 with test as (
-	select 'test'::varchar gid, st_transform(st_geomfromtext('POINT(5.7155424 45.1841655)', 4326),2154) the_geom
+	select 'test'::varchar gid, st_transform(st_geomfromtext('POINT(1.8105 42.577167)', 4326),2154) the_geom
 	),
 	a as (
 	select gid, st_x(the_geom) x, st_y(the_geom) y, st_buffer(the_geom,%s) geom
@@ -77,7 +77,7 @@ from a
 order by gid
 ;
 """
-'''
+
 viewmax= 50000#3.57*math.sqrt(215)*1000
 print viewmax
 wsta.execute(query,(viewmax,))
@@ -132,7 +132,7 @@ for sta in wsta:
 	print "raster extracted", w, h
 	
 	#Get all intersected cells on azimuth
-	for azimut in range (0, 360, 1):
+	for azimut in range (0, 360, 5):
 		print sta[0], azimut
 		myview=0
 		c= None
