@@ -48,16 +48,17 @@ print "table created"
 
 #load points and view extent
 wsta=myconn.cursor()
-'''
+
 query="""
 with a as (
-	select gid, st_x(the_geom) x, st_y(the_geom) y, st_buffer(the_geom,%s) geom
-	from stations.geo_station_meteofrance
+	select distinct a.gid, st_x(a.the_geom) x, st_y(a.the_geom) y, st_buffer(a.the_geom,%s) geom
+	from stations.geo_station_meteofrance a, spatial.geo_departements_fra b
+	where st_intersects(a.the_geom, b.the_geom)
 	)
 
 select gid, x, y, st_xmin(geom) xmin, st_ymin(geom), st_xmax(geom) xmax, st_ymax(geom) ymax
 from a
-where gid = '09139401'
+--where gid = '203000401'
 order by gid
 ;
 """
@@ -77,7 +78,7 @@ from a
 order by gid
 ;
 """
-
+'''
 viewmax= 50000#3.57*math.sqrt(215)*1000
 print viewmax
 wsta.execute(query,(viewmax,))
@@ -150,13 +151,14 @@ for sta in wsta:
 				ptrc=(ptrow, ptcol)
 				
 				#calculate corresponding angle to reach the corresponding height
-				b = height[ptrc]-height[sta_rc]
-				if b > 0:
-					#take care of row col and order between viewpt and sta
-					a = ((sta_rc[0]-ptrc[0])*25)
-					angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
-				else:
-					angle.append(0)
+				if ptrow < w and ptcol < h:
+					b = height[ptrc]-height[sta_rc]
+					if b > 0:
+						#take care of row col and order between viewpt and sta
+						a = ((sta_rc[0]-ptrc[0])*25)
+						angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
+					else:
+						angle.append(0)
 			
 ######################################AZIMUT 180######################################
 
@@ -170,13 +172,14 @@ for sta in wsta:
 				ptrc=(ptrow, ptcol)
 				
 				#calculate corresponding angle to reach the corresponding height
-				b = height[ptrc]-height[sta_rc]
-				if b > 0:
-					#take care of row col and order between viewpt and sta
-					a = ((ptrc[0]-sta_rc[0])*25)
-					angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
-				else:
-					angle.append(0)
+				if ptrow < w and ptcol < h:
+					b = height[ptrc]-height[sta_rc]
+					if b > 0:
+						#take care of row col and order between viewpt and sta
+						a = ((ptrc[0]-sta_rc[0])*25)
+						angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
+					else:
+						angle.append(0)
 			
 ######################################AZIMUT 90######################################
 
@@ -190,13 +193,14 @@ for sta in wsta:
 				ptrc=(ptrow, ptcol)
 				
 				#calculate corresponding angle to reach the corresponding height
-				b = height[ptrc]-height[sta_rc]
-				if b > 0:
-					#take care of row col and order between viewpt and sta
-					a = ((ptrc[1]-sta_rc[1])*25)
-					angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
-				else:
-					angle.append(0)
+				if ptrow < w and ptcol < h:
+					b = height[ptrc]-height[sta_rc]
+					if b > 0:
+						#take care of row col and order between viewpt and sta
+						a = ((ptrc[1]-sta_rc[1])*25)
+						angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
+					else:
+						angle.append(0)
 
 ######################################AZIMUT 270######################################
 
@@ -210,13 +214,14 @@ for sta in wsta:
 				ptrc=(ptrow, ptcol)
 				
 				#calculate corresponding angle to reach the corresponding height
-				b = height[ptrc]-height[sta_rc]
-				if b > 0:
-					#take care of row col and order between viewpt and sta
-					a = ((sta_rc[1]-ptrc[1])*25)
-					angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
-				else:
-					angle.append(0)
+				if ptrow < w and ptcol < h:
+					b = height[ptrc]-height[sta_rc]
+					if b > 0:
+						#take care of row col and order between viewpt and sta
+						a = ((sta_rc[1]-ptrc[1])*25)
+						angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
+					else:
+						angle.append(0)
 
 ######################################AZIMUT 45######################################
 
@@ -233,13 +238,14 @@ for sta in wsta:
 				ptrc=(ptrow, ptcol)
 				
 				#calculate corresponding angle to reach the corresponding height
-				b = height[ptrc]-height[sta_rc]
-				if b > 0:
-					#take care of row col and order between viewpt and sta
-					a = ((ptrc[1]-sta_rc[1])*25)/cos_alpha
-					angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
-				else:
-					angle.append(0)
+				if ptrow < w and ptcol < h:
+					b = height[ptrc]-height[sta_rc]
+					if b > 0:
+						#take care of row col and order between viewpt and sta
+						a = ((ptrc[1]-sta_rc[1])*25)/cos_alpha
+						angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
+					else:
+						angle.append(0)
 
 ######################################AZIMUT 135######################################
 
@@ -256,13 +262,14 @@ for sta in wsta:
 				ptrc=(ptrow, ptcol)
 				
 				#calculate corresponding angle to reach the corresponding height
-				b = height[ptrc]-height[sta_rc]
-				if b > 0:
-					#take care of row col and order between viewpt and sta
-					a = ((ptrc[1]-sta_rc[1])*25)/cos_alpha
-					angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
-				else:
-					angle.append(0)
+				if ptrow < w and ptcol < h:
+					b = height[ptrc]-height[sta_rc]
+					if b > 0:
+						#take care of row col and order between viewpt and sta
+						a = ((ptrc[1]-sta_rc[1])*25)/cos_alpha
+						angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
+					else:
+						angle.append(0)
 					
 ######################################AZIMUT 225######################################
 
@@ -279,13 +286,14 @@ for sta in wsta:
 				ptrc=(ptrow, ptcol)
 				
 				#calculate corresponding angle to reach the corresponding height
-				b = height[ptrc]-height[sta_rc]
-				if b > 0:
-					#take care of row col and order between viewpt and sta
-					a = ((ptrc[0]-sta_rc[0])*25)/cos_alpha
-					angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
-				else:
-					angle.append(0)
+				if ptrow < w and ptcol < h:
+					b = height[ptrc]-height[sta_rc]
+					if b > 0:
+						#take care of row col and order between viewpt and sta
+						a = ((ptrc[0]-sta_rc[0])*25)/cos_alpha
+						angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
+					else:
+						angle.append(0)
 
 ######################################AZIMUT 315######################################
 
@@ -302,13 +310,14 @@ for sta in wsta:
 				ptrc=(ptrow, ptcol)
 				
 				#calculate corresponding angle to reach the corresponding height
-				b = height[ptrc]-height[sta_rc]
-				if b > 0:
-					#take care of row col and order between viewpt and sta
-					a = ((sta_rc[0]-ptrc[0])*25)/cos_alpha
-					angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
-				else:
-					angle.append(0)
+				if ptrow < w and ptcol < h:
+					b = height[ptrc]-height[sta_rc]
+					if b > 0:
+						#take care of row col and order between viewpt and sta
+						a = ((sta_rc[0]-ptrc[0])*25)/cos_alpha
+						angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
+					else:
+						angle.append(0)
 
 ######################################AZIMUTS 0 => 45######################################
 
@@ -329,13 +338,14 @@ for sta in wsta:
 				ptrc=(ptrow, ptcol)
 				
 				#calculate corresponding angle to reach the corresponding height
-				b = height[ptrc]-height[sta_rc]
-				if b > 0:
-					#take care of row col and order between viewpt and sta
-					a = ((sta_rc[0]-ptrc[0])*25)/cos_alpha
-					angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
-				else:
-					angle.append(0)
+				if ptrow < w and ptcol < h:
+					b = height[ptrc]-height[sta_rc]
+					if b > 0:
+						#take care of row col and order between viewpt and sta
+						a = ((sta_rc[0]-ptrc[0])*25)/cos_alpha
+						angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
+					else:
+						angle.append(0)
 
 ######################################AZIMUTS 45 => 90######################################
 
@@ -345,7 +355,6 @@ for sta in wsta:
 			cos_alpha = math.cos(alpha)
 			sin_alpha = math.sin(alpha)
 			imax = int(math.floor(viewmax*cos_alpha/25))
-			angle = []
 			for i in range(1,imax):
 				myview = myview+25
 				c = myview/cos_alpha
@@ -356,13 +365,14 @@ for sta in wsta:
 				ptrc=(ptrow, ptcol)
 				
 				#calculate corresponding angle to reach the corresponding height
-				b = height[ptrc]-height[sta_rc]
-				if b > 0:
-					#take care of row col and order between viewpt and sta
-					a = ((ptrc[1]-sta_rc[1])*25)/cos_alpha
-					angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
-				else:
-					angle.append(0)
+				if ptrow < w and ptcol < h:
+					b = height[ptrc]-height[sta_rc]
+					if b > 0:
+						#take care of row col and order between viewpt and sta
+						a = ((ptrc[1]-sta_rc[1])*25)/cos_alpha
+						angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
+					else:
+						angle.append(0)
 
 ######################################AZIMUTS 90 => 135######################################
 
@@ -383,13 +393,14 @@ for sta in wsta:
 				ptrc=(ptrow, ptcol)
 				
 				#calculate corresponding angle to reach the corresponding height
-				b = height[ptrc]-height[sta_rc]
-				if b > 0:
-					#take care of row col and order between viewpt and sta
-					a = ((ptrc[1]-sta_rc[1])*25)/cos_alpha
-					angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
-				else:
-					angle.append(0)
+				if ptrow < w and ptcol < h:
+					b = height[ptrc]-height[sta_rc]
+					if b > 0:
+						#take care of row col and order between viewpt and sta
+						a = ((ptrc[1]-sta_rc[1])*25)/cos_alpha
+						angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
+					else:
+						angle.append(0)
 
 ######################################AZIMUTS 135 => 180######################################
 
@@ -410,13 +421,14 @@ for sta in wsta:
 				ptrc=(ptrow, ptcol)
 				
 				#calculate corresponding angle to reach the corresponding height
-				b = height[ptrc]-height[sta_rc]
-				if b > 0:
-					#take care of row col and order between viewpt and sta
-					a = ((ptrc[0]-sta_rc[0])*25)/cos_alpha
-					angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
-				else:
-					angle.append(0)
+				if ptrow < w and ptcol < h:
+					b = height[ptrc]-height[sta_rc]
+					if b > 0:
+						#take care of row col and order between viewpt and sta
+						a = ((ptrc[0]-sta_rc[0])*25)/cos_alpha
+						angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
+					else:
+						angle.append(0)
 			
 ######################################AZIMUTS 180 => 225######################################
 
@@ -437,13 +449,14 @@ for sta in wsta:
 				ptrc=(ptrow, ptcol)
 				
 				#calculate corresponding angle to reach the corresponding height
-				b = height[ptrc]-height[sta_rc]
-				if b > 0:
-					#take care of row col and order between viewpt and sta
-					a = ((ptrc[0]-sta_rc[0])*25)/cos_alpha
-					angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
-				else:
-					angle.append(0)
+				if ptrow < w and ptcol < h:
+					b = height[ptrc]-height[sta_rc]
+					if b > 0:
+						#take care of row col and order between viewpt and sta
+						a = ((ptrc[0]-sta_rc[0])*25)/cos_alpha
+						angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
+					else:
+						angle.append(0)
 					
 ######################################AZIMUTS 225 => 270######################################
 
@@ -464,13 +477,14 @@ for sta in wsta:
 				ptrc=(ptrow, ptcol)
 				
 				#calculate corresponding angle to reach the corresponding height
-				b = height[ptrc]-height[sta_rc]
-				if b > 0:
-					#take care of row col and order between viewpt and sta
-					a = ((sta_rc[1]-ptrc[1])*25)/cos_alpha
-					angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
-				else:
-					angle.append(0)
+				if ptrow < w and ptcol < h:
+					b = height[ptrc]-height[sta_rc]
+					if b > 0:
+						#take care of row col and order between viewpt and sta
+						a = ((sta_rc[1]-ptrc[1])*25)/cos_alpha
+						angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
+					else:
+						angle.append(0)
 			
 ######################################AZIMUTS 270 => 315######################################
 
@@ -491,13 +505,14 @@ for sta in wsta:
 				ptrc=(ptrow, ptcol)
 				
 				#calculate corresponding angle to reach the corresponding height
-				b = height[ptrc]-height[sta_rc]
-				if b > 0:
-					#take care of row col and order between viewpt and sta
-					a = ((sta_rc[1]-ptrc[1])*25)/cos_alpha
-					angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
-				else:
-					angle.append(0)
+				if ptrow < w and ptcol < h:
+					b = height[ptrc]-height[sta_rc]
+					if b > 0:
+						#take care of row col and order between viewpt and sta
+						a = ((sta_rc[1]-ptrc[1])*25)/cos_alpha
+						angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
+					else:
+						angle.append(0)
 
 ######################################AZIMUTS 315 => 360######################################
 
@@ -518,13 +533,14 @@ for sta in wsta:
 				ptrc=(ptrow, ptcol)
 				
 				#calculate corresponding angle to reach the corresponding height
-				b = height[ptrc]-height[sta_rc]
-				if b > 0:
-					#take care of row col and order between viewpt and sta
-					a = ((sta_rc[0]-ptrc[0])*25)/cos_alpha
-					angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
-				else:
-					angle.append(0)
+				if ptrow < w and ptcol < h:
+					b = height[ptrc]-height[sta_rc]
+					if b > 0:
+						#take care of row col and order between viewpt and sta
+						a = ((sta_rc[0]-ptrc[0])*25)/cos_alpha
+						angle.append(math.ceil((math.degrees(math.acos(a/math.sqrt(a**2+b**2))))*100)/100)
+					else:
+						angle.append(0)
 		
 		#append each azimut to final data for weather station
 		data = (sta[0], azimut, max(angle))

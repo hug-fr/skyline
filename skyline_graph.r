@@ -8,21 +8,21 @@ ch = odbcConnect("PostgreSQL35W",uid="hug",pwd="hug")
  
 sql=
 "
-/*select nom_station, azimut, angle from stations.station_meteo_skyline a
+select a.gid, nom_station, azimut, angle from stations.station_meteo_skyline a
 join stations.geo_station_meteofrance b on a.gid=b.gid
-*/
-select * from stations.station_meteo_skyline
+
+/*select * from stations.station_meteo_skyline*/
 "
 
 
 data=sqlQuery(ch, paste(sql, collapse=' '))
 close(ch)
 
-mylim <- ceiling(max(data[,3])/20)*20
+mylim <- ceiling(max(data[,4])/20)*20
 
-data2 <- cast(data, gid ~ azimut, value = "angle")
+#data2 <- cast(data, nom_station ~ azimut, value = "angle")
 
-for (sta in data2[,1]){
+for (sta in unique(data[,1])){
 
 png(
 	file=paste0("C:/Users/hugues.francois/Desktop/github/skyline/graph_",sta,".png"),
@@ -35,10 +35,11 @@ mylay<-layout(matrix(c(
 #layout.show(mylay)
 par(mar = c(0,0,0,0))
 plot.new()
-mtext(sta, cex=1, line =-4)
+mtext(unique(data[data[,1]==sta,2]), cex=1, line =-4)
 par(mar=c(2,2,0,1), cex.axis=.6)
+data2 <- cast(data[data[,1]==sta,2:4], nom_station ~ azimut, value = "angle")
 radial.plot(
-	mylim-data2[data2[,1]==sta,2:length(data2)],
+	mylim-data2[,2:length(data2)],
 	labels=c("N","NE","E","SE","S","SW","W","NW"),
 	rp.type="p",
 	radial.lim=c(0,mylim),
@@ -53,11 +54,12 @@ radial.plot(
 )
 
 par(mar=c(2,4,0,1))
-plot(data[data[,1]==sta,2], data[data[,1]==sta,3],
+plot(data[data[,1]==sta,3], data[data[,1]==sta,4],
 	type = "l",
 	col="#648bda",
 	lwd = 2,
 	axes=F,
+	ylim=c(0,mylim),
 	xlab = NA,
 	ylab = NA,
 	xlim=c(0,360)
