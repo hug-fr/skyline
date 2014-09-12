@@ -48,7 +48,7 @@ print "table created"
 
 #load points and view extent
 wsta=myconn.cursor()
-
+'''
 query="""
 with a as (
 	select distinct a.gid, st_x(a.the_geom) x, st_y(a.the_geom) y, st_buffer(a.the_geom,%s) geom
@@ -58,7 +58,7 @@ with a as (
 
 select gid, x, y, st_xmin(geom) xmin, st_ymin(geom), st_xmax(geom) xmax, st_ymax(geom) ymax
 from a
---where gid = '203000401'
+where gid = '38002406'
 order by gid
 ;
 """
@@ -78,7 +78,7 @@ from a
 order by gid
 ;
 """
-'''
+
 viewmax= 50000#3.57*math.sqrt(215)*1000
 print viewmax
 wsta.execute(query,(viewmax,))

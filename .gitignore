@@ -37,3 +37,6 @@ Icon
 
 #connection string to psql database
 conn_param.*
+
+#images
+*.png
