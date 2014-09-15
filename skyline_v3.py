@@ -45,8 +45,7 @@ create table stations.station_meteo_skyline_v2(
 	gid varchar(50),
 	azimut int4,
 	angle int4,
-	pt_geom geometry,
-	line_geom geometry);
+	pt_geom geometry);
 """
 skylinetable.execute(query)
 myconn.commit()
@@ -71,14 +70,14 @@ order by gid
 '''
 query="""
 with test as (
-	select 'test'::varchar gid, st_transform(st_geomfromtext('POINT(5.765447 45.295108)', 4326),2154) the_geom 
+	select 'test'::varchar gid, 1325::integer alt, st_transform(st_geomfromtext('POINT(5.765447 45.295108)', 4326),2154) the_geom 
 	),
 	a as (
-	select gid, st_x(the_geom) x, st_y(the_geom) y, st_buffer(the_geom,%s) geom
+	select gid, alt, st_x(the_geom) x, st_y(the_geom) y, st_buffer(the_geom,%s) geom
 	from test
 	)
 
-select gid, x, y, st_xmin(geom) xmin, st_ymin(geom), st_xmax(geom) xmax, st_ymax(geom) ymax
+select gid, x, y, st_xmin(geom) xmin, st_ymin(geom), st_xmax(geom) xmax, st_ymax(geom) ymax, alt
 from a
 --where gid = '38002406'
 order by gid
@@ -138,52 +137,51 @@ for sta in wsta:
 	
 	print "raster extracted", w, h
 	print height[sta_rc]
-
-	#Init ref line (north)
-	
-	refline=geometry.LineString([(sta[1],sta[2]), (sta[1],sta[2]+viewmax)])
-	refpoint=geometry.Point(sta[1], sta[2])
 	
 	#Get all intersected cells on azimuth
 	
 	for azimut in range (0, 360, 5):
-		newline = affinity.rotate(refline, -azimut, origin=(sta[1],sta [2])) #rotate line regarding azimut
-		i = 0 #count for dist iterations
-		angle = numpy.empty((1,viewmax/step)).astype(numpy.float) #initialize container for angles
+		i = 0
+		angle = numpy.zeros((1,(viewmax/step)-1)).astype(numpy.float) #initialize container for angles
 		points = [] #initialize container for points
 		pt_dist = []
-		
-		for dist in range (0,viewmax,step):
-			i = i+1
-			pt = newline.interpolate(dist) #point on line
-			
+		for dist in range (step,viewmax,step):
+			ptx = sta[1]+(dist*math.sin(math.radians(azimut))) 
+			pty = sta[2] + (dist * math.cos(math.radians(azimut)))
+			pt = (ptx,pty)
+			points.append(pt)
+			pt_dist.append(dist)
+						
 			#get row col information
-			if pt.x < xmax and pt.x > xmin:
-				x = rastinit[0]+((math.floor((pt.x-rastinit[0])/rastinit[1]))*rastinit[1])
+			if ptx < xmax and ptx > xmin:
+				x = rastinit[0]+((math.floor((ptx-rastinit[0])/rastinit[1]))*rastinit[1])
 				ptcol = numpy.unique(numpy.argwhere(imgx==x))[1]-mincol
-			if pt.y < ymax and pt.y > ymin:
-				y = rastinit[3]-((math.ceil((rastinit[3]-pt.y)/rastinit[5]))*rastinit[5])
+			if pty < ymax and pty > ymin:
+				y = rastinit[3]-((math.ceil((rastinit[3]-pty)/rastinit[5]))*rastinit[5])
 				ptrow = numpy.unique(numpy.argwhere(imgy==y))[1]-minrow
-			ptrc=(ptrow, ptcol)				
+			ptrc=(ptrow, ptcol)
+			#print dist, height[ptrc]-height[sta_rc], x,y, stax, stay, ptrc, sta_rc
+					
 			#calculate corresponding angle to reach the height of pt
 			if ptrow < w and ptcol < h:
-				b = height[ptrc]-height[sta_rc]
-				a = round(refpoint.distance(pt),0)
-				if b > 0:
-					
-					angle[0,i-1]=math.ceil((math.degrees(math.atan(b/a)))*100)/100
-					points.append(pt.wkb_hex)
-					pt_dist.append(a)
+				b = height[ptrc]-sta[7]
+				b = b.astype('float')
+				#print b, b/dist, type(b), type(dist), type(b/dist)#)))*100)/100
+				if b > 0:					
+					angle[0,i]=math.ceil((math.degrees(math.atan(b/dist)))*100)/100
 				else:
-					angle[0,i-1]=0
-					points.append(pt.wkb_hex)
-					pt_dist.append(a)
+					angle[0,i]=0
+			
+			#print angle[0,i], max(angle[0,])
+			#raw_input()
+			
+			i = i+1
 		
-		print sta[0], azimut, len(points), len(angle[0,]), numpy.argwhere(angle==max(angle[0,]))[0][1], pt_dist[numpy.argwhere(angle==max(angle[0,]))[0][1]], height[ptrc], height[sta_rc], max(angle[0,])
+		print sta[0], azimut, max(angle[0,])
 		
 				
 		#append each azimut to final data for weather station
-		data = (sta[0], azimut, max(angle[0,]), points[numpy.argwhere(angle==max(angle[0,]))[0][1]], newline.wkb_hex)
+		data = (sta[0], azimut, max(angle[0,]), points[numpy.argwhere(angle==max(angle[0,]))[0][1]][0], points[numpy.argwhere(angle==max(angle[0,]))[0][1]][1])
 		final_data.append(data)
 		#print(data)
 
@@ -194,7 +192,7 @@ for sta in wsta:
 		skylinetable=myconn.cursor()
 		query="""
 		insert into stations.station_meteo_skyline_v2
-		values(%s, %s, %s, ST_SetSRID(%s, 2154), ST_SetSRID(%s, 2154));
+		values(%s, %s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 2154));
 		"""
 
 		skylinetable.execute(query,(values[0],values[1], values[2], values[3], values[4]))

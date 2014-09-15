@@ -65,7 +65,7 @@ order by gid
 '''
 query="""
 with test as (
-	select 'test'::varchar gid, st_transform(st_geomfromtext('POINT(1.8105 42.577167)', 4326),2154) the_geom
+	select 'test'::varchar gid, st_transform(st_geomfromtext('POINT(5.765447 45.295108)', 4326),2154) the_geom
 	),
 	a as (
 	select gid, st_x(the_geom) x, st_y(the_geom) y, st_buffer(the_geom,%s) geom
