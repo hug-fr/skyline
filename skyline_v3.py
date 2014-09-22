@@ -84,7 +84,7 @@ order by gid
 ;
 """
 
-viewmax= 50000#3.57*math.sqrt(215)*1000
+viewmax= 20000#3.57*math.sqrt(215)*1000
 print viewmax
 wsta.execute(query,(viewmax,))
 
@@ -164,7 +164,7 @@ for sta in wsta:
 					
 			#calculate corresponding angle to reach the height of pt
 			if ptrow < w and ptcol < h:
-				b = height[ptrc]-sta[7]
+				b = height[ptrc]-height[sta_rc] #sta[7]
 				b = b.astype('float')
 				#print b, b/dist, type(b), type(dist), type(b/dist)#)))*100)/100
 				if b > 0:					
