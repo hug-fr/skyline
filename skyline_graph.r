@@ -122,7 +122,7 @@ plot(t(data3[1,2:length(data3[1,])]), t(data3[2,2:length(data3[2,])]),
 	type = "l", col="red",
 	xlim=c(0,360), ylim=c(0,mylim), xlab=NA, ylab=NA)
 par(new=T)
-plot(t(data3[1,2:length(data3[1,])]), t(data3[2,2:length(data3[2,])]),
+plot(t(data3[1,2:length(data3[1,])]), t(data3[3,2:length(data3[2,])]),
 	type = "l", col="orange",
 	xlim=c(0,360), ylim=c(0,mylim), xlab=NA, ylab=NA)
 
